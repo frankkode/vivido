@@ -26,10 +26,14 @@ RUN npm run postbuild
 RUN echo "=== Checking backend/dist/public ===" && \
     ls -la backend/dist/ && \
     ls -la backend/dist/public/ && \
-    echo "=== Files found in backend/dist/public ==="
+    echo "=== Files found in backend/dist/public ===" && \
+    echo "=== Checking server.js exists ===" && \
+    ls -la backend/dist/server.js
 
 # Expose port
 EXPOSE 8080
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application with runtime verification
+CMD echo "Starting server..." && \
+    ls -la /app/backend/dist/public 2>/dev/null || echo "WARNING: /app/backend/dist/public not found at runtime" && \
+    npm start
