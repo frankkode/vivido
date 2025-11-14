@@ -7,36 +7,32 @@ interface MenuProps {
 }
 
 export const Menu = ({ socket }: MenuProps) => {
-  const [name, setName] = useState('');
+  const { playerName, setPlayerName, setMode } = useGameStore();
   const [gameIdInput, setGameIdInput] = useState('');
-  const { setPlayerName, setMode } = useGameStore();
 
   const handleFindMatch = () => {
-    if (!socket || !name.trim()) {
+    if (!socket || !playerName.trim()) {
       alert('Please enter your name');
       return;
     }
-    setPlayerName(name);
-    socket.emit('findMatch', name);
+    socket.emit('findMatch', playerName);
     setMode('matchmaking');
   };
 
   const handleCreateGame = () => {
-    if (!socket || !name.trim()) {
+    if (!socket || !playerName.trim()) {
       alert('Please enter your name');
       return;
     }
-    setPlayerName(name);
-    socket.emit('createGame', name);
+    socket.emit('createGame', playerName);
   };
 
   const handleJoinGame = () => {
-    if (!socket || !name.trim() || !gameIdInput.trim()) {
+    if (!socket || !playerName.trim() || !gameIdInput.trim()) {
       alert('Please enter your name and game ID');
       return;
     }
-    setPlayerName(name);
-    socket.emit('joinGame', { gameId: gameIdInput, playerName: name });
+    socket.emit('joinGame', { gameId: gameIdInput, playerName });
   };
 
   const handleSpectate = () => {
@@ -44,7 +40,7 @@ export const Menu = ({ socket }: MenuProps) => {
       alert('Please enter a game ID to spectate');
       return;
     }
-    socket.emit('spectateGame', { gameId: gameIdInput, spectatorName: name || 'Anonymous' });
+    socket.emit('spectateGame', { gameId: gameIdInput, spectatorName: playerName || 'Anonymous' });
   };
 
   return (
@@ -59,8 +55,8 @@ export const Menu = ({ socket }: MenuProps) => {
           <input
             type="text"
             placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
             className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
 
