@@ -1,0 +1,156 @@
+import { Chess } from 'chess.js';
+import { v4 as uuidv4 } from 'uuid';
+import { Game, Player, GameState } from './types';
+
+export class GameManager {
+  private games: Map<string, Game> = new Map();
+  private chessInstances: Map<string, Chess> = new Map();
+  private waitingPlayers: Array<{ id: string; name: string }> = [];
+
+  createGame(): string {
+    const gameId = uuidv4();
+    const chess = new Chess();
+
+    const game: Game = {
+      id: gameId,
+      players: [],
+      spectators: new Set(),
+      fen: chess.fen(),
+      turn: 'w',
+      moveHistory: [],
+      status: 'waiting',
+      createdAt: new Date(),
+    };
+
+    this.games.set(gameId, game);
+    this.chessInstances.set(gameId, chess);
+
+    return gameId;
+  }
+
+  joinGame(gameId: string, playerId: string, playerName: string): Player | null {
+    const game = this.games.get(gameId);
+    if (!game || game.players.length >= 2) {
+      return null;
+    }
+
+    const color = game.players.length === 0 ? 'w' : 'b';
+    const player: Player = { id: playerId, name: playerName, color };
+
+    game.players.push(player);
+
+    if (game.players.length === 2) {
+      game.status = 'active';
+    }
+
+    return player;
+  }
+
+  joinAsSpectator(gameId: string, spectatorId: string): boolean {
+    const game = this.games.get(gameId);
+    if (!game) return false;
+
+    game.spectators.add(spectatorId);
+    return true;
+  }
+
+  leaveGame(gameId: string, playerId: string): void {
+    const game = this.games.get(gameId);
+    if (!game) return;
+
+    game.spectators.delete(playerId);
+
+    const playerIndex = game.players.findIndex(p => p.id === playerId);
+    if (playerIndex !== -1 && game.status === 'active') {
+      // If a player leaves during an active game, the other player wins
+      game.status = 'finished';
+      const winner = game.players[1 - playerIndex];
+      game.result = winner.color === 'w' ? 'white' : 'black';
+    }
+  }
+
+  makeMove(gameId: string, playerId: string, from: string, to: string, promotion?: string): boolean {
+    const game = this.games.get(gameId);
+    const chess = this.chessInstances.get(gameId);
+
+    if (!game || !chess || game.status !== 'active') {
+      return false;
+    }
+
+    const player = game.players.find(p => p.id === playerId);
+    if (!player || player.color !== game.turn) {
+      return false;
+    }
+
+    try {
+      const move = chess.move({ from, to, promotion });
+      if (!move) return false;
+
+      game.fen = chess.fen();
+      game.turn = chess.turn();
+      game.moveHistory.push(move.san);
+
+      if (chess.isGameOver()) {
+        game.status = 'finished';
+        if (chess.isCheckmate()) {
+          game.result = chess.turn() === 'w' ? 'black' : 'white';
+        } else {
+          game.result = 'draw';
+        }
+      }
+
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  getGameState(gameId: string): GameState | null {
+    const game = this.games.get(gameId);
+    if (!game) return null;
+
+    return {
+      id: game.id,
+      fen: game.fen,
+      turn: game.turn,
+      moveHistory: game.moveHistory,
+      status: game.status,
+      players: game.players,
+      spectatorCount: game.spectators.size,
+    };
+  }
+
+  getAllActiveGames(): GameState[] {
+    return Array.from(this.games.values())
+      .filter(game => game.status === 'active' || game.status === 'waiting')
+      .map(game => ({
+        id: game.id,
+        fen: game.fen,
+        turn: game.turn,
+        moveHistory: game.moveHistory,
+        status: game.status,
+        players: game.players,
+        spectatorCount: game.spectators.size,
+      }));
+  }
+
+  addWaitingPlayer(playerId: string, playerName: string): string | null {
+    // Check if there's already a waiting player
+    if (this.waitingPlayers.length > 0) {
+      const opponent = this.waitingPlayers.shift()!;
+      const gameId = this.createGame();
+
+      this.joinGame(gameId, opponent.id, opponent.name);
+      this.joinGame(gameId, playerId, playerName);
+
+      return gameId;
+    } else {
+      this.waitingPlayers.push({ id: playerId, name: playerName });
+      return null;
+    }
+  }
+
+  removeWaitingPlayer(playerId: string): void {
+    this.waitingPlayers = this.waitingPlayers.filter(p => p.id !== playerId);
+  }
+}
