@@ -30,9 +30,10 @@ export const useSocket = () => {
       setMode('playing');
     });
 
-    socket.on('gameCreated', ({ gameId, color }) => {
+    socket.on('gameCreated', ({ gameId, color, gameState }) => {
       setGameId(gameId);
       setPlayerColor(color);
+      setGameState(gameState);
       setMode('playing');
     });
 

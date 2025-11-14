@@ -117,10 +117,12 @@ io.on('connection', (socket) => {
 
     if (player) {
       socket.join(gameId);
+      const gameState = gameManager.getGameState(gameId);
       socket.emit('gameCreated', {
         gameId,
         color: player.color,
         playerName: player.name,
+        gameState,
       });
     }
   });
