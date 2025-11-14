@@ -21,6 +21,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from frontend build in production
+console.log('=== BACKEND VERSION 2.0 - Updated logging ===');
 console.log('__dirname is:', __dirname);
 
 // Try multiple possible locations for the frontend build

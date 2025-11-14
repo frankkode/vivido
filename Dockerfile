@@ -15,6 +15,9 @@ RUN npm install
 # Copy source files
 COPY . .
 
+# Clean any cached builds
+RUN rm -rf frontend/dist backend/dist || true
+
 # Build frontend and backend
 RUN npm run build --workspace=frontend
 RUN npm run build --workspace=backend
