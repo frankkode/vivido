@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import path from 'path';
+import { existsSync } from 'fs';
 import { GameManager } from './GameManager';
 
 const app = express();
@@ -21,7 +22,14 @@ app.use(express.json());
 
 // Serve static files from frontend build in production
 const frontendDistPath = path.join(__dirname, '../../frontend/dist');
-app.use(express.static(frontendDistPath));
+console.log('Frontend dist path:', frontendDistPath);
+console.log('Frontend dist exists:', existsSync(frontendDistPath));
+
+if (existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+} else {
+  console.warn('Frontend dist directory not found at:', frontendDistPath);
+}
 
 // REST API endpoints
 app.get('/api/games', (req, res) => {
@@ -156,11 +164,21 @@ io.on('connection', (socket) => {
 
 // Serve index.html for all non-API routes (SPA fallback)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(frontendDistPath, 'index.html'));
+  const indexPath = path.join(frontendDistPath, 'index.html');
+  if (existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(200).json({
+      message: 'Backend server is running',
+      note: 'Frontend build not found. Please build frontend first.',
+      frontendPath: frontendDistPath
+    });
+  }
 });
 
 const PORT = process.env.PORT || 3001;
+const HOST = '0.0.0.0';
 
-httpServer.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+httpServer.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
 });
