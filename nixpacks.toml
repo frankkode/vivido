@@ -1,0 +1,5 @@
+[phases.install]
+cmds = ["npm ci --omit=dev"]
+
+[phases.build]
+cmds = ["npm run build --workspace=frontend", "npm run build --workspace=backend"]
