@@ -1,14 +1,12 @@
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["npm install --no-cache"]
 
 [phases.build]
 cmds = [
   "npm run build --workspace=frontend",
-  "npm run build --workspace=backend"
+  "npm run build --workspace=backend",
+  "npm run postbuild"
 ]
-
-[phases.setup]
-cmds = ["echo 'Verifying build outputs...'", "ls -la frontend/dist 2>/dev/null || echo 'WARNING: frontend/dist not found'", "ls -la backend/dist 2>/dev/null || echo 'WARNING: backend/dist not found'"]
 
 [start]
 cmd = "npm start"
