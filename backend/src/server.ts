@@ -20,6 +20,12 @@ const gameManager = new GameManager();
 app.use(cors());
 app.use(express.json());
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+
 // Serve static files from frontend build in production
 console.log('=== BACKEND VERSION 2.0 - Updated logging ===');
 console.log('__dirname is:', __dirname);
@@ -51,6 +57,11 @@ if (frontendDistPath) {
 }
 
 // REST API endpoints
+app.get('/api/test', (req, res) => {
+  console.log('Test endpoint hit!');
+  res.json({ status: 'Server is responding', timestamp: new Date().toISOString() });
+});
+
 app.get('/api/games', (req, res) => {
   const games = gameManager.getAllActiveGames();
   res.json(games);
