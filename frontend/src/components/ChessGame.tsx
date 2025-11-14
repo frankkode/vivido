@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Chessboard } from 'react-chessboard';
-import { Chess } from 'chess.js';
+import { Chess, Square } from 'chess.js';
 import { Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
 
@@ -10,7 +10,7 @@ interface ChessGameProps {
 }
 
 export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
-  const { gameState, gameId, playerColor, playerName, setMode, reset } = useGameStore();
+  const { gameState, gameId, playerColor, setMode, reset } = useGameStore();
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
   if (!gameState) {
@@ -25,7 +25,7 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
 
     if (selectedSquare) {
       // Try to make a move
-      const piece = chess.get(selectedSquare);
+      const piece = chess.get(selectedSquare as Square);
       const isPromotion = piece?.type === 'p' &&
         ((piece.color === 'w' && square[1] === '8') ||
          (piece.color === 'b' && square[1] === '1'));
@@ -40,7 +40,7 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
       setSelectedSquare(null);
     } else {
       // Select a square
-      const piece = chess.get(square);
+      const piece = chess.get(square as Square);
       if (piece && piece.color === playerColor) {
         setSelectedSquare(square);
       }

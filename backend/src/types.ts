@@ -22,6 +22,7 @@ export interface GameState {
   turn: 'w' | 'b';
   moveHistory: string[];
   status: string;
+  result?: 'white' | 'black' | 'draw';
   players: Player[];
   spectatorCount: number;
 }
