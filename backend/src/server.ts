@@ -176,7 +176,7 @@ app.get('*', (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = parseInt(process.env.PORT || '3001', 10);
 const HOST = '0.0.0.0';
 
 httpServer.listen(PORT, HOST, () => {
