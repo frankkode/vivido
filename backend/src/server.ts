@@ -21,14 +21,25 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static files from frontend build in production
-const frontendDistPath = path.join(__dirname, '../../frontend/dist');
-console.log('Frontend dist path:', frontendDistPath);
-console.log('Frontend dist exists:', existsSync(frontendDistPath));
+// Try multiple possible locations for the frontend build
+const possiblePaths = [
+  path.join(__dirname, 'public'),           // Copied during build (production)
+  path.join(__dirname, '../../frontend/dist') // Original location (development)
+];
 
-if (existsSync(frontendDistPath)) {
+let frontendDistPath = '';
+for (const p of possiblePaths) {
+  if (existsSync(p)) {
+    frontendDistPath = p;
+    console.log('Frontend dist found at:', frontendDistPath);
+    break;
+  }
+}
+
+if (frontendDistPath) {
   app.use(express.static(frontendDistPath));
 } else {
-  console.warn('Frontend dist directory not found at:', frontendDistPath);
+  console.warn('Frontend dist directory not found. Tried:', possiblePaths);
 }
 
 // REST API endpoints
