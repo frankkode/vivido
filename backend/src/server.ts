@@ -2,6 +2,7 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import path from 'path';
 import { GameManager } from './GameManager';
 
 const app = express();
@@ -17,6 +18,10 @@ const gameManager = new GameManager();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from frontend build in production
+const frontendDistPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(frontendDistPath));
 
 // REST API endpoints
 app.get('/api/games', (req, res) => {
@@ -147,6 +152,11 @@ io.on('connection', (socket) => {
     console.log(`User disconnected: ${socket.id}`);
     // Handle player leaving - this will be managed by room cleanup
   });
+});
+
+// Serve index.html for all non-API routes (SPA fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
 });
 
 const PORT = process.env.PORT || 3001;

@@ -7,7 +7,12 @@ export const useSocket = () => {
   const { setMode, setPlayerColor, setGameId, setGameState } = useGameStore();
 
   useEffect(() => {
-    const socket = io('http://localhost:3001');
+    // Use current host in production, localhost in development
+    const socketUrl = import.meta.env.PROD
+      ? window.location.origin
+      : 'http://localhost:3001';
+
+    const socket = io(socketUrl);
     socketRef.current = socket;
 
     socket.on('connect', () => {
