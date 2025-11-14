@@ -26,6 +26,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint (MUST be before static files)
+app.get('/health', (req, res) => {
+  console.log('Health check endpoint hit');
+  res.status(200).send('OK');
+});
+
 // Serve static files from frontend build in production
 console.log('=== BACKEND VERSION 2.0 - Updated logging ===');
 console.log('__dirname is:', __dirname);
@@ -209,6 +215,14 @@ app.get('*', (req, res) => {
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const HOST = '0.0.0.0';
 
+console.log('Environment PORT:', process.env.PORT);
+console.log('Using PORT:', PORT);
+console.log('Binding to HOST:', HOST);
+
 httpServer.listen(PORT, HOST, () => {
-  console.log(`Server running on ${HOST}:${PORT}`);
+  console.log(`✓ Server successfully started on ${HOST}:${PORT}`);
+  console.log(`✓ Ready to accept connections`);
+}).on('error', (err) => {
+  console.error('❌ Server failed to start:', err);
+  process.exit(1);
 });
