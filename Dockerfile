@@ -22,6 +22,12 @@ RUN npm run build --workspace=backend
 # Copy frontend build to backend dist
 RUN npm run postbuild
 
+# Verify the files are copied
+RUN echo "=== Checking backend/dist/public ===" && \
+    ls -la backend/dist/ && \
+    ls -la backend/dist/public/ && \
+    echo "=== Files found in backend/dist/public ==="
+
 # Expose port
 EXPOSE 8080
 
