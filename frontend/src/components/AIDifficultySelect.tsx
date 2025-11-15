@@ -56,11 +56,15 @@ export const AIDifficultySelect = ({ socket }: AIDifficultySelectProps) => {
   const [selectedLevel, setSelectedLevel] = useState<AILevel>('intermediate');
 
   const handleStartGame = () => {
+    console.log('Starting AI game:', { socket: !!socket, playerName, aiLevel: selectedLevel });
+
     if (!socket || !playerName.trim()) {
       alert('Please enter your name from the main menu');
       setMode('menu');
       return;
     }
+
+    console.log('Emitting createAIGame event...');
     socket.emit('createAIGame', { playerName, aiLevel: selectedLevel });
   };
 
