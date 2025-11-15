@@ -2,6 +2,8 @@ export interface Player {
   id: string;
   name: string;
   color: 'w' | 'b';
+  isAI?: boolean;
+  aiLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
 }
 
 export interface Game {
@@ -14,6 +16,7 @@ export interface Game {
   status: 'waiting' | 'active' | 'finished';
   result?: 'white' | 'black' | 'draw';
   createdAt: Date;
+  isAIGame?: boolean;
 }
 
 export interface GameState {

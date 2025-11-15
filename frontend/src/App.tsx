@@ -3,6 +3,7 @@ import { useGameStore } from './store/gameStore';
 import { Menu } from './components/Menu';
 import { Matchmaking } from './components/Matchmaking';
 import { ChessGame } from './components/ChessGame';
+import { AIDifficultySelect } from './components/AIDifficultySelect';
 
 function App() {
   const socket = useSocket();
@@ -11,6 +12,7 @@ function App() {
   return (
     <div className="App">
       {mode === 'menu' && <Menu socket={socket} />}
+      {mode === 'ai-select' && <AIDifficultySelect socket={socket} />}
       {mode === 'matchmaking' && <Matchmaking socket={socket} />}
       {mode === 'playing' && <ChessGame socket={socket} />}
       {mode === 'spectating' && <ChessGame socket={socket} isSpectator={true} />}

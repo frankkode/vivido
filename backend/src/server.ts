@@ -168,7 +168,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('makeMove', ({ gameId, from, to, promotion }) => {
+  socket.on('makeMove', async ({ gameId, from, to, promotion }) => {
     const success = gameManager.makeMove(gameId, socket.id, from, to, promotion);
 
     if (success) {
@@ -181,6 +181,39 @@ io.on('connection', (socket) => {
           result: gameState.result,
           gameState,
         });
+        return;
+      }
+
+      // If this is an AI game, trigger AI move
+      if (gameManager.isAIGame(gameId)) {
+        // Small delay for better UX
+        setTimeout(async () => {
+          const aiMove = await gameManager.getAIMove(gameId);
+          if (aiMove) {
+            const aiPlayer = gameManager.getAIPlayer(gameId);
+            if (aiPlayer) {
+              const aiSuccess = gameManager.makeMove(
+                gameId,
+                aiPlayer.id,
+                aiMove.from,
+                aiMove.to,
+                aiMove.promotion
+              );
+
+              if (aiSuccess) {
+                const updatedState = gameManager.getGameState(gameId);
+                io.to(gameId).emit('gameUpdate', updatedState);
+
+                if (updatedState?.status === 'finished') {
+                  io.to(gameId).emit('gameOver', {
+                    result: updatedState.result,
+                    gameState: updatedState,
+                  });
+                }
+              }
+            }
+          }
+        }, 300);
       }
     } else {
       socket.emit('error', { message: 'Invalid move' });
@@ -191,6 +224,50 @@ io.on('connection', (socket) => {
     const gameState = gameManager.getGameState(gameId);
     if (gameState) {
       socket.emit('gameUpdate', gameState);
+    }
+  });
+
+  // AI Game handlers
+  socket.on('createAIGame', async ({ playerName, aiLevel }) => {
+    console.log(`Creating AI game for ${playerName} vs AI (${aiLevel})`);
+
+    const gameId = gameManager.createAIGame(
+      socket.id,
+      playerName || 'Player',
+      aiLevel || 'intermediate'
+    );
+
+    const gameState = gameManager.getGameState(gameId);
+    const humanPlayer = gameState?.players.find(p => !p.isAI);
+
+    if (gameState && humanPlayer) {
+      socket.join(gameId);
+      socket.emit('aiGameCreated', {
+        gameId,
+        color: humanPlayer.color,
+        playerName: humanPlayer.name,
+        gameState,
+      });
+
+      // If AI plays white, make first move
+      if (gameState.turn === 'b' && humanPlayer.color === 'b') {
+        // AI is white and plays first
+        const aiMove = await gameManager.getAIMove(gameId);
+        if (aiMove) {
+          const success = gameManager.makeMove(
+            gameId,
+            `ai-${gameId}`,
+            aiMove.from,
+            aiMove.to,
+            aiMove.promotion
+          );
+
+          if (success) {
+            const updatedState = gameManager.getGameState(gameId);
+            io.to(gameId).emit('gameUpdate', updatedState);
+          }
+        }
+      }
     }
   });
 

@@ -6,17 +6,22 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
-      includeAssets: ['icon.svg', 'icon-*.png'],
+      registerType: 'prompt',
+      includeAssets: ['icon.svg', 'icon-*.png', 'favicon.ico'],
+      devOptions: {
+        enabled: true
+      },
       manifest: {
         name: 'Vivido Chess - Play with Family',
         short_name: 'Vivido Chess',
-        description: 'Play chess with your family on any device',
+        description: 'Play chess with your family on any device. Challenge AI or play multiplayer!',
         theme_color: '#7c3aed',
         background_color: '#1e1b4b',
         display: 'standalone',
         orientation: 'any',
+        scope: '/',
         start_url: '/',
+        categories: ['games', 'entertainment'],
         icons: [
           {
             src: '/icon-72x72.png',

@@ -43,13 +43,21 @@ export const Menu = ({ socket }: MenuProps) => {
     socket.emit('spectateGame', { gameId: gameIdInput, spectatorName: playerName || 'Anonymous' });
   };
 
+  const handlePlayAI = () => {
+    if (!playerName.trim()) {
+      alert('Please enter your name');
+      return;
+    }
+    setMode('ai-select');
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
       <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-8 max-w-md w-full border border-white/20">
         <h1 className="text-5xl font-bold text-white text-center mb-2">
           ♔ Vivido Chess ♚
         </h1>
-        <p className="text-white/70 text-center mb-8">Play with your family on any device</p>
+        <p className="text-white/70 text-center mb-8">Play chess anywhere, anytime</p>
 
         <div className="space-y-4">
           <input
@@ -59,6 +67,13 @@ export const Menu = ({ socket }: MenuProps) => {
             onChange={(e) => setPlayerName(e.target.value)}
             className="w-full px-4 py-3 rounded-lg bg-white/20 text-white placeholder-white/50 border border-white/30 focus:outline-none focus:ring-2 focus:ring-purple-500"
           />
+
+          <button
+            onClick={handlePlayAI}
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105 text-lg"
+          >
+            🤖 Play vs AI
+          </button>
 
           <button
             onClick={handleFindMatch}

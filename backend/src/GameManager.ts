@@ -1,10 +1,12 @@
 import { Chess } from 'chess.js';
 import { v4 as uuidv4 } from 'uuid';
 import { Game, Player, GameState } from './types';
+import { AIPlayer, AILevel } from './AIPlayer';
 
 export class GameManager {
   private games: Map<string, Game> = new Map();
   private chessInstances: Map<string, Chess> = new Map();
+  private aiPlayers: Map<string, AIPlayer> = new Map();
   private waitingPlayers: Array<{ id: string; name: string }> = [];
 
   createGame(): string {
@@ -152,5 +154,81 @@ export class GameManager {
 
   removeWaitingPlayer(playerId: string): void {
     this.waitingPlayers = this.waitingPlayers.filter(p => p.id !== playerId);
+  }
+
+  /**
+   * Create a new AI game
+   */
+  createAIGame(playerId: string, playerName: string, aiLevel: AILevel): string {
+    const gameId = this.createGame();
+    const chess = this.chessInstances.get(gameId)!;
+    const game = this.games.get(gameId)!;
+
+    // Randomly assign colors
+    const playerColor = Math.random() < 0.5 ? 'w' : 'b';
+    const aiColor = playerColor === 'w' ? 'b' : 'w';
+
+    // Add human player
+    const humanPlayer: Player = {
+      id: playerId,
+      name: playerName || 'Player',
+      color: playerColor,
+      isAI: false,
+    };
+
+    // Add AI player
+    const aiPlayer: Player = {
+      id: `ai-${gameId}`,
+      name: `AI (${AIPlayer.getLevelName(aiLevel)})`,
+      color: aiColor,
+      isAI: true,
+      aiLevel,
+    };
+
+    game.players = [humanPlayer, aiPlayer];
+    game.status = 'active';
+    game.isAIGame = true;
+
+    // Create AI instance
+    this.aiPlayers.set(gameId, new AIPlayer(aiLevel));
+
+    return gameId;
+  }
+
+  /**
+   * Get AI move for a game
+   */
+  async getAIMove(gameId: string): Promise<{ from: string; to: string; promotion?: string } | null> {
+    const game = this.games.get(gameId);
+    const ai = this.aiPlayers.get(gameId);
+
+    if (!game || !ai || !game.isAIGame) {
+      return null;
+    }
+
+    // Check if it's AI's turn
+    const aiPlayer = game.players.find(p => p.isAI);
+    if (!aiPlayer || aiPlayer.color !== game.turn) {
+      return null;
+    }
+
+    return await ai.getBestMove(game.fen);
+  }
+
+  /**
+   * Check if a game is an AI game
+   */
+  isAIGame(gameId: string): boolean {
+    const game = this.games.get(gameId);
+    return game?.isAIGame ?? false;
+  }
+
+  /**
+   * Get AI player for a game
+   */
+  getAIPlayer(gameId: string): Player | null {
+    const game = this.games.get(gameId);
+    if (!game) return null;
+    return game.players.find(p => p.isAI) ?? null;
   }
 }

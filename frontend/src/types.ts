@@ -2,6 +2,8 @@ export interface Player {
   id: string;
   name: string;
   color: 'w' | 'b';
+  isAI?: boolean;
+  aiLevel?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
 }
 
 export interface GameState {
@@ -15,4 +17,6 @@ export interface GameState {
   result?: 'white' | 'black' | 'draw';
 }
 
-export type GameMode = 'menu' | 'matchmaking' | 'playing' | 'spectating';
+export type AILevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
+
+export type GameMode = 'menu' | 'ai-select' | 'matchmaking' | 'playing' | 'spectating';

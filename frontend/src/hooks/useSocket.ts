@@ -37,6 +37,13 @@ export const useSocket = () => {
       setMode('playing');
     });
 
+    socket.on('aiGameCreated', ({ gameId, color, gameState }) => {
+      setGameId(gameId);
+      setPlayerColor(color);
+      setGameState(gameState);
+      setMode('playing');
+    });
+
     socket.on('gameJoined', ({ gameId, color, gameState }) => {
       setGameId(gameId);
       setPlayerColor(color);
