@@ -232,7 +232,7 @@ io.on('connection', (socket) => {
 
   // AI Game handlers
   socket.on('createAIGame', async ({ playerName, aiLevel }) => {
-    console.log(`Creating AI game for ${playerName} vs AI (${aiLevel})`);
+    console.log(`\n🎮 Creating AI game for ${playerName} vs AI (${aiLevel})`);
 
     const gameId = gameManager.createAIGame(
       socket.id,
