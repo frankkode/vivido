@@ -66,7 +66,16 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
     if (isSpectator) {
       return `${gameState.turn === 'w' ? 'White' : 'Black'} to move`;
     }
-    return isPlayerTurn ? 'Your turn!' : "Opponent's turn";
+
+    // Check if opponent is AI
+    const opponent = gameState.players.find(p => p.color !== playerColor);
+    const isAIGame = opponent?.isAI;
+
+    if (isPlayerTurn) {
+      return 'Your turn!';
+    } else {
+      return isAIGame ? 'AI is thinking...' : "Opponent's turn";
+    }
   };
 
   const whitePlayer = gameState.players.find(p => p.color === 'w');

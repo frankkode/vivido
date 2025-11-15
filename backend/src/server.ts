@@ -186,9 +186,11 @@ io.on('connection', (socket) => {
 
       // If this is an AI game, trigger AI move
       if (gameManager.isAIGame(gameId)) {
+        console.log('AI game detected, triggering AI move...');
         // Small delay for better UX
         setTimeout(async () => {
           const aiMove = await gameManager.getAIMove(gameId);
+          console.log('AI move calculated:', aiMove);
           if (aiMove) {
             const aiPlayer = gameManager.getAIPlayer(gameId);
             if (aiPlayer) {
@@ -200,6 +202,7 @@ io.on('connection', (socket) => {
                 aiMove.promotion
               );
 
+              console.log('AI move success:', aiSuccess);
               if (aiSuccess) {
                 const updatedState = gameManager.getGameState(gameId);
                 io.to(gameId).emit('gameUpdate', updatedState);
@@ -240,6 +243,13 @@ io.on('connection', (socket) => {
     const gameState = gameManager.getGameState(gameId);
     const humanPlayer = gameState?.players.find(p => !p.isAI);
 
+    console.log('AI Game created:', {
+      gameId,
+      humanColor: humanPlayer?.color,
+      aiColor: gameState?.players.find(p => p.isAI)?.color,
+      currentTurn: gameState?.turn
+    });
+
     if (gameState && humanPlayer) {
       socket.join(gameId);
       socket.emit('aiGameCreated', {
@@ -250,23 +260,28 @@ io.on('connection', (socket) => {
       });
 
       // If AI plays white, make first move
-      if (gameState.turn === 'b' && humanPlayer.color === 'b') {
-        // AI is white and plays first
-        const aiMove = await gameManager.getAIMove(gameId);
-        if (aiMove) {
-          const success = gameManager.makeMove(
-            gameId,
-            `ai-${gameId}`,
-            aiMove.from,
-            aiMove.to,
-            aiMove.promotion
-          );
+      if (humanPlayer.color === 'b') {
+        // AI is white and should play first
+        setTimeout(async () => {
+          const aiMove = await gameManager.getAIMove(gameId);
+          if (aiMove) {
+            const aiPlayer = gameManager.getAIPlayer(gameId);
+            if (aiPlayer) {
+              const success = gameManager.makeMove(
+                gameId,
+                aiPlayer.id,
+                aiMove.from,
+                aiMove.to,
+                aiMove.promotion
+              );
 
-          if (success) {
-            const updatedState = gameManager.getGameState(gameId);
-            io.to(gameId).emit('gameUpdate', updatedState);
+              if (success) {
+                const updatedState = gameManager.getGameState(gameId);
+                io.to(gameId).emit('gameUpdate', updatedState);
+              }
+            }
           }
-        }
+        }, 500);
       }
     }
   });
