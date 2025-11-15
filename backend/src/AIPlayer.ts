@@ -31,15 +31,13 @@ export class AIPlayer {
   async getBestMove(fen: string): Promise<{ from: string; to: string; promotion?: string } | null> {
     const chess = new Chess(fen);
 
-    // Simulate thinking time for better UX
-    await this.delay(this.config.thinkTime);
-
     // Get legal moves
     const moves = chess.moves({ verbose: true });
     if (moves.length === 0) return null;
 
     // For beginner level, sometimes make random moves
     if (this.level === 'beginner' && Math.random() < 0.3) {
+      await this.delay(this.config.thinkTime);
       const randomMove = moves[Math.floor(Math.random() * moves.length)];
       return {
         from: randomMove.from,
@@ -48,11 +46,40 @@ export class AIPlayer {
       };
     }
 
-    // Use minimax for better levels
-    const bestMove = this.minimax(chess, this.config.depth, -Infinity, Infinity, true);
+    // Start minimax calculation with timeout protection
+    const startTime = Date.now();
+    const maxCalculationTime = 5000; // 5 seconds max
 
-    if (!bestMove.move) {
-      // Fallback to random move
+    try {
+      const bestMove = await Promise.race([
+        new Promise<{ score: number; move: { from: string; to: string; promotion?: string } | null }>((resolve) => {
+          const result = this.minimax(chess, this.config.depth, -Infinity, Infinity, true);
+          resolve(result);
+        }),
+        new Promise<{ score: number; move: null }>((_, reject) =>
+          setTimeout(() => reject(new Error('Calculation timeout')), maxCalculationTime)
+        )
+      ]);
+
+      const calculationTime = Date.now() - startTime;
+      const remainingDelay = Math.max(0, this.config.thinkTime - calculationTime);
+      await this.delay(remainingDelay);
+
+      if (!bestMove.move) {
+        // Fallback to random move
+        const randomMove = moves[Math.floor(Math.random() * moves.length)];
+        return {
+          from: randomMove.from,
+          to: randomMove.to,
+          promotion: randomMove.promotion,
+        };
+      }
+
+      return bestMove.move;
+    } catch (error) {
+      // Timeout or error - return random move
+      console.warn('AI calculation timeout or error, using random move:', error);
+      await this.delay(this.config.thinkTime);
       const randomMove = moves[Math.floor(Math.random() * moves.length)];
       return {
         from: randomMove.from,
@@ -60,8 +87,6 @@ export class AIPlayer {
         promotion: randomMove.promotion,
       };
     }
-
-    return bestMove.move;
   }
 
   /**
