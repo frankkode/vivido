@@ -1,7 +1,7 @@
 import { Chess } from 'chess.js';
-import { v4 as uuidv4 } from 'uuid';
 import { Game, Player, GameState } from './types';
 import { AIPlayer, AILevel } from './AIPlayer';
+import { generateGameId } from './utils/generateGameId';
 
 export class GameManager {
   private games: Map<string, Game> = new Map();
@@ -10,7 +10,11 @@ export class GameManager {
   private waitingPlayers: Array<{ id: string; name: string }> = [];
 
   createGame(): string {
-    const gameId = uuidv4();
+    // Generate unique short game ID
+    let gameId: string;
+    do {
+      gameId = generateGameId();
+    } while (this.games.has(gameId)); // Ensure uniqueness
     const chess = new Chess();
 
     const game: Game = {

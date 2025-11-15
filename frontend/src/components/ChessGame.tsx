@@ -3,6 +3,7 @@ import { Chessboard } from 'react-chessboard';
 import { Chess, Square } from 'chess.js';
 import { Socket } from 'socket.io-client';
 import { useGameStore } from '../store/gameStore';
+import { GameOverModal } from './GameOverModal';
 
 interface ChessGameProps {
   socket: Socket | null;
@@ -12,6 +13,7 @@ interface ChessGameProps {
 export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
   const { gameState, gameId, playerColor, setMode, reset } = useGameStore();
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+  const [rightClickedSquares, setRightClickedSquares] = useState<{ [key: string]: any }>({});
 
   if (!gameState) {
     return <div className="text-white">Loading game...</div>;
@@ -20,26 +22,31 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
   const chess = new Chess(gameState.fen);
   const isPlayerTurn = !isSpectator && gameState.turn === playerColor;
 
+  const makeMove = (from: string, to: string) => {
+    const piece = chess.get(from as Square);
+    const isPromotion = piece?.type === 'p' &&
+      ((piece.color === 'w' && to[1] === '8') ||
+       (piece.color === 'b' && to[1] === '1'));
+
+    socket?.emit('makeMove', {
+      gameId,
+      from,
+      to,
+      promotion: isPromotion ? 'q' : undefined,
+    });
+  };
+
   const handleSquareClick = (square: string) => {
     if (isSpectator || !isPlayerTurn) return;
 
     if (selectedSquare) {
-      // Try to make a move
-      const piece = chess.get(selectedSquare as Square);
-      const isPromotion = piece?.type === 'p' &&
-        ((piece.color === 'w' && square[1] === '8') ||
-         (piece.color === 'b' && square[1] === '1'));
-
-      socket?.emit('makeMove', {
-        gameId,
-        from: selectedSquare,
-        to: square,
-        promotion: isPromotion ? 'q' : undefined,
-      });
-
+      if (selectedSquare === square) {
+        setSelectedSquare(null);
+        return;
+      }
+      makeMove(selectedSquare, square);
       setSelectedSquare(null);
     } else {
-      // Select a square
       const piece = chess.get(square as Square);
       if (piece && piece.color === playerColor) {
         setSelectedSquare(square);
@@ -47,9 +54,37 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
     }
   };
 
+  const handlePieceDrop = (sourceSquare: string, targetSquare: string) => {
+    if (isSpectator || !isPlayerTurn) return false;
+
+    const piece = chess.get(sourceSquare as Square);
+    if (!piece || piece.color !== playerColor) return false;
+
+    makeMove(sourceSquare, targetSquare);
+    setSelectedSquare(null);
+    return true;
+  };
+
   const handleLeave = () => {
     reset();
     setMode('menu');
+  };
+
+  const handlePlayAgain = () => {
+    const opponent = gameState.players.find(p => p.color !== playerColor);
+    reset();
+    if (opponent?.isAI) {
+      setMode('ai-select');
+    } else {
+      setMode('menu');
+    }
+  };
+
+  const onSquareRightClick = (square: string) => {
+    const color = rightClickedSquares[square] === 'rgba(255, 0, 0, 0.4)'
+      ? 'rgba(255, 255, 0, 0.4)'
+      : 'rgba(255, 0, 0, 0.4)';
+    setRightClickedSquares({ ...rightClickedSquares, [square]: color });
   };
 
   const getStatusMessage = () => {
@@ -89,11 +124,28 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h2 className="text-2xl font-bold text-white">Vivido Chess</h2>
-              <p className="text-white/60 text-sm">Game ID: {gameId}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-white/60 text-sm">Game ID: <span className="font-mono font-bold text-white">{gameId}</span></p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(gameId || '');
+                    const btn = document.getElementById('copy-btn');
+                    if (btn) {
+                      btn.textContent = '✓';
+                      setTimeout(() => btn.textContent = '📋', 1000);
+                    }
+                  }}
+                  id="copy-btn"
+                  className="text-xs bg-white/10 hover:bg-white/20 text-white px-2 py-1 rounded transition"
+                  title="Copy Game ID"
+                >
+                  📋
+                </button>
+              </div>
             </div>
             <button
               onClick={handleLeave}
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+              className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition hover:scale-105"
             >
               Leave Game
             </button>
@@ -137,19 +189,28 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
           </div>
 
           {/* Chess Board */}
-          <div className="bg-white/5 rounded-xl p-4 mb-4">
+          <div className="bg-white/5 rounded-xl p-4 mb-4 shadow-2xl">
             <Chessboard
               position={gameState.fen}
               onSquareClick={handleSquareClick}
+              onPieceDrop={handlePieceDrop}
+              onSquareRightClick={onSquareRightClick}
               boardOrientation={isSpectator ? 'white' : playerColor === 'w' ? 'white' : 'black'}
               customSquareStyles={{
+                ...rightClickedSquares,
                 ...(selectedSquare ? {
                   [selectedSquare]: {
                     backgroundColor: 'rgba(255, 255, 0, 0.4)',
                   },
                 } : {}),
               }}
-              arePiecesDraggable={false}
+              arePiecesDraggable={!isSpectator && isPlayerTurn}
+              customBoardStyle={{
+                borderRadius: '8px',
+                boxShadow: '0 8px 16px rgba(0, 0, 0, 0.3)',
+              }}
+              customDarkSquareStyle={{ backgroundColor: '#769656' }}
+              customLightSquareStyle={{ backgroundColor: '#eeeed2' }}
             />
           </div>
 
@@ -173,6 +234,14 @@ export const ChessGame = ({ socket, isSpectator = false }: ChessGameProps) => {
           </div>
         </div>
       </div>
+
+      {/* Game Over Modal */}
+      <GameOverModal
+        gameState={gameState}
+        playerColor={playerColor}
+        onPlayAgain={handlePlayAgain}
+        onBackToMenu={handleLeave}
+      />
     </div>
   );
 };
