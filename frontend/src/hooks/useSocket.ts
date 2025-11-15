@@ -7,12 +7,16 @@ export const useSocket = () => {
   const { setMode, setPlayerColor, setGameId, setGameState } = useGameStore();
 
   useEffect(() => {
-    // Use current host in production, localhost in development
+    // In development, use relative path to leverage Vite proxy
+    // In production, use current host
     const socketUrl = import.meta.env.PROD
       ? window.location.origin
-      : 'http://localhost:3001';
+      : window.location.origin; // Use Vite dev server with proxy
 
-    const socket = io(socketUrl);
+    const socket = io(socketUrl, {
+      path: '/socket.io',
+      transports: ['websocket', 'polling']
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {
