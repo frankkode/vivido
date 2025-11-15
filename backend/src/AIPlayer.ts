@@ -51,15 +51,8 @@ export class AIPlayer {
     const maxCalculationTime = 5000; // 5 seconds max
 
     try {
-      const bestMove = await Promise.race([
-        new Promise<{ score: number; move: { from: string; to: string; promotion?: string } | null }>((resolve) => {
-          const result = this.minimax(chess, this.config.depth, -Infinity, Infinity, true);
-          resolve(result);
-        }),
-        new Promise<{ score: number; move: null }>((_, reject) =>
-          setTimeout(() => reject(new Error('Calculation timeout')), maxCalculationTime)
-        )
-      ]);
+      // Use async minimax to prevent blocking
+      const bestMove = await this.minimaxAsync(chess, this.config.depth, -Infinity, Infinity, true, maxCalculationTime);
 
       const calculationTime = Date.now() - startTime;
       const remainingDelay = Math.max(0, this.config.thinkTime - calculationTime);
@@ -90,7 +83,72 @@ export class AIPlayer {
   }
 
   /**
-   * Minimax algorithm with alpha-beta pruning
+   * Async minimax algorithm with alpha-beta pruning that doesn't block the event loop
+   */
+  private async minimaxAsync(
+    chess: Chess,
+    depth: number,
+    alpha: number,
+    beta: number,
+    maximizingPlayer: boolean,
+    maxTime: number,
+    startTime: number = Date.now(),
+    moveCount: number = 0
+  ): Promise<{ score: number; move: { from: string; to: string; promotion?: string } | null }> {
+    // Check timeout
+    if (Date.now() - startTime > maxTime) {
+      throw new Error('Calculation timeout');
+    }
+
+    // Yield to event loop every 100 moves to prevent blocking
+    if (moveCount % 100 === 0 && moveCount > 0) {
+      await new Promise(resolve => setImmediate(resolve));
+    }
+
+    if (depth === 0 || chess.isGameOver()) {
+      return { score: this.evaluatePosition(chess), move: null };
+    }
+
+    const moves = chess.moves({ verbose: true });
+    let bestMove = null;
+
+    if (maximizingPlayer) {
+      let maxScore = -Infinity;
+      for (const move of moves) {
+        chess.move(move);
+        const result = await this.minimaxAsync(chess, depth - 1, alpha, beta, false, maxTime, startTime, moveCount + 1);
+        chess.undo();
+
+        if (result.score > maxScore) {
+          maxScore = result.score;
+          bestMove = { from: move.from, to: move.to, promotion: move.promotion };
+        }
+
+        alpha = Math.max(alpha, result.score);
+        if (beta <= alpha) break; // Alpha-beta pruning
+      }
+      return { score: maxScore, move: bestMove };
+    } else {
+      let minScore = Infinity;
+      for (const move of moves) {
+        chess.move(move);
+        const result = await this.minimaxAsync(chess, depth - 1, alpha, beta, true, maxTime, startTime, moveCount + 1);
+        chess.undo();
+
+        if (result.score < minScore) {
+          minScore = result.score;
+          bestMove = { from: move.from, to: move.to, promotion: move.promotion };
+        }
+
+        beta = Math.min(beta, result.score);
+        if (beta <= alpha) break; // Alpha-beta pruning
+      }
+      return { score: minScore, move: bestMove };
+    }
+  }
+
+  /**
+   * Minimax algorithm with alpha-beta pruning (kept for reference, not used)
    */
   private minimax(
     chess: Chess,
